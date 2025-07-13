@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Breathing Exercise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles for the breathing animation and overall look */
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .breathing-circle {
+            transition: transform 3s ease-in-out, background-color 3s ease-in-out;
+        }
+
+        .circle-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+        }
+
+        @media (max-width: 640px) {
+            .circle-container {
+                width: 200px;
+                height: 200px;
+            }
+        }
+
+        .breathing-text {
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        /* Custom focus rings for accessibility */
+        .custom-focus-ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+        }
+        
+        /* Gradient background animation */
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .animated-gradient {
+            background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 overflow-hidden">
+
+    <div id="app-container" class="w-full max-w-md text-center">
+        <h1 class="text-4xl font-bold mb-2 text-gray-100">Mindful Breathing</h1>
+        <p id="instruction-text" class="text-2xl text-blue-300 font-light mb-8 transition-opacity duration-500">Press Start to Begin</p>
+
+        <!-- Breathing Animation Circle -->
+        <div class="circle-container mx-auto mb-8 flex items-center justify-center">
+            <div id="breathing-circle" class="breathing-circle w-full h-full rounded-full bg-blue-500 flex items-center justify-center shadow-2xl" style="transform: scale(0.5);">
+                <span id="breathing-text" class="breathing-text text-xl font-medium text-white opacity-0">Ready?</span>
+            </div>
+        </div>
+        
+        <p id="timer-display" class="text-5xl font-mono mb-8 text-gray-200">00:00</p>
+
+        <!-- Controls -->
+        <div id="controls" class="flex justify-center space-x-4 mb-8">
+            <button id="start-btn" class="custom-focus-ring bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105 shadow-lg">Start</button>
+            <button id="stop-btn" class="custom-focus-ring bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105 shadow-lg hidden">Stop</button>
+        </div>
+
+        <!-- Settings Panel -->
+        <div id="settings" class="bg-gray-800 p-6 rounded-2xl shadow-inner">
+            <h2 class="text-xl font-semibold mb-4 text-gray-300">Settings</h2>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
+                <div>
+                    <label for="inhale-duration" class="block text-sm font-medium text-gray-400 mb-1">Inhale (s)</label>
+                    <input type="number" id="inhale-duration" value="4" min="1" class="custom-focus-ring w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                </div>
+                <div>
+                    <label for="hold-duration" class="block text-sm font-medium text-gray-400 mb-1">Hold (s)</label>
+                    <input type="number" id="hold-duration" value="16" min="0" class="custom-focus-ring w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                </div>
+                <div>
+                    <label for="exhale-duration" class="block text-sm font-medium text-gray-400 mb-1">Exhale (s)</label>
+                    <input type="number" id="exhale-duration" value="8" min="1" class="custom-focus-ring w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                </div>
+                <div>
+                    <label for="rest-duration" class="block text-sm font-medium text-gray-400 mb-1">Rest (s)</label>
+                    <input type="number" id="rest-duration" value="0" min="0" class="custom-focus-ring w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                </div>
+            </div>
+             <div class="mt-4">
+                <label for="preset-select" class="block text-sm font-medium text-gray-400 mb-1">Breathing Presets</label>
+                <select id="preset-select" class="custom-focus-ring w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
+                    <option value="custom">Custom</option>
+                    <option value="siddha">Siddha (1:4:2)</option>
+                    <option value="box">Box Breathing (4:4:4:4)</option>
+                    <option value="478">Relaxing (4:7:8)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const circle = document.getElementById('breathing-circle');
+        const instructionText = document.getElementById('instruction-text');
+        const breathingText = document.getElementById('breathing-text');
+        const timerDisplay = document.getElementById('timer-display');
+        const startBtn = document.getElementById('start-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const settingsDiv = document.getElementById('settings');
+
+        const inhaleInput = document.getElementById('inhale-duration');
+        const holdInput = document.getElementById('hold-duration');
+        const exhaleInput = document.getElementById('exhale-duration');
+        const restInput = document.getElementById('rest-duration'); // New input
+        const presetSelect = document.getElementById('preset-select');
+
+        // State variables
+        let isRunning = false;
+        let breathInterval;
+        let sessionTimer;
+        let sessionSeconds = 0;
+
+        // Breathing cycle state
+        const phases = {
+            INHALE: 'inhale',
+            HOLD: 'hold',
+            EXHALE: 'exhale',
+            REST: 'rest', // New phase
+        };
+
+        // --- Utility Functions ---
+        
+        /**
+         * Formats seconds into a MM:SS string.
+         * @param {number} totalSeconds - The total seconds to format.
+         * @returns {string} The formatted time string.
+         */
+        function formatTime(totalSeconds) {
+            const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+            const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+            return `${minutes}:${seconds}`;
+        }
+
+        /**
+         * Updates the UI for a specific breathing phase.
+         * @param {string} text - The instruction text for the phase.
+         * @param {string} circleText - The text inside the circle.
+         * @param {number} scale - The CSS scale for the circle.
+         * @param {string} color - The background color for the circle.
+         * @param {number} transitionDuration - The duration for the circle's transition.
+         */
+        function updatePhaseUI(text, circleText, scale, color, transitionDuration) {
+            instructionText.innerText = text;
+            breathingText.innerText = circleText;
+            circle.style.transitionDuration = `${transitionDuration}s`;
+            circle.style.transform = `scale(${scale})`;
+            circle.style.backgroundColor = color;
+        }
+        
+        /**
+         * Applies a preset breathing ratio.
+         */
+        function applyPreset() {
+            const preset = presetSelect.value;
+            // Reset rest duration for presets that don't use it.
+            restInput.value = 0; 
+            switch(preset) {
+                case 'siddha': // 1:4:2 ratio, based on a 4s inhale
+                    inhaleInput.value = 4;
+                    holdInput.value = 16;
+                    exhaleInput.value = 8;
+                    break;
+                case 'box': // 4:4:4:4
+                    inhaleInput.value = 4;
+                    holdInput.value = 4;
+                    exhaleInput.value = 4;
+                    restInput.value = 4; // Set the rest period for box breathing
+                    break;
+                case '478':
+                    inhaleInput.value = 4;
+                    holdInput.value = 7;
+                    exhaleInput.value = 8;
+                    break;
+                default:
+                    // Custom, do nothing
+                    break;
+            }
+        }
+
+
+        // --- Core Logic ---
+
+        /**
+         * The main loop for the breathing exercise.
+         */
+        function startBreathingCycle() {
+            const inhaleTime = parseInt(inhaleInput.value, 10) * 1000;
+            const holdTime = parseInt(holdInput.value, 10) * 1000;
+            const exhaleTime = parseInt(exhaleInput.value, 10) * 1000;
+            const restTime = parseInt(restInput.value, 10) * 1000; // Get rest time
+            const totalCycleTime = inhaleTime + holdTime + exhaleTime + restTime;
+
+            function runPhase(phase) {
+                switch (phase) {
+                    case phases.INHALE:
+                        updatePhaseUI('Breathe In...', 'Inhale', 1, '#3b82f6', inhaleTime / 1000); // Blue-500
+                        setTimeout(() => runPhase(phases.HOLD), inhaleTime);
+                        break;
+                    case phases.HOLD:
+                        if (holdTime > 0) {
+                            updatePhaseUI('Hold', 'Hold', 1, '#8b5cf6', 0.5); // Violet-500
+                            setTimeout(() => runPhase(phases.EXHALE), holdTime);
+                        } else {
+                            runPhase(phases.EXHALE);
+                        }
+                        break;
+                    case phases.EXHALE:
+                        updatePhaseUI('Breathe Out...', 'Exhale', 0.5, '#10b981', exhaleTime / 1000); // Emerald-500
+                        setTimeout(() => runPhase(phases.REST), exhaleTime); // Transition to rest
+                        break;
+                    case phases.REST:
+                        // Only run rest phase if duration is > 0
+                        if (restTime > 0) {
+                            updatePhaseUI('Rest', 'Rest', 0.5, '#4b5563', 0.5); // Gray-600
+                        }
+                        // The cycle will naturally restart via the main setInterval
+                        break;
+                }
+            }
+            
+            // Initial call to start the cycle
+            runPhase(phases.INHALE);
+
+            // Set an interval to repeat the cycle
+            breathInterval = setInterval(() => {
+                runPhase(phases.INHALE);
+            }, totalCycleTime);
+        }
+
+        /**
+         * Starts the entire exercise session.
+         */
+        function startExercise() {
+            if (isRunning) return;
+            isRunning = true;
+
+            // Update UI for running state
+            startBtn.classList.add('hidden');
+            stopBtn.classList.remove('hidden');
+            settingsDiv.classList.add('opacity-50', 'pointer-events-none');
+            breathingText.classList.remove('opacity-0');
+
+            // Reset and start session timer
+            sessionSeconds = 0;
+            timerDisplay.innerText = formatTime(sessionSeconds);
+            sessionTimer = setInterval(() => {
+                sessionSeconds++;
+                timerDisplay.innerText = formatTime(sessionSeconds);
+            }, 1000);
+
+            // Start the breathing animation cycle
+            startBreathingCycle();
+        }
+
+        /**
+         * Stops the exercise session and resets the UI.
+         */
+        function stopExercise() {
+            if (!isRunning) return;
+            isRunning = false;
+
+            // Clear intervals
+            clearInterval(breathInterval);
+            clearInterval(sessionTimer);
+
+            // Reset UI to initial state
+            startBtn.classList.remove('hidden');
+            stopBtn.classList.add('hidden');
+            settingsDiv.classList.remove('opacity-50', 'pointer-events-none');
+            breathingText.classList.add('opacity-0');
+            
+            instructionText.innerText = 'Great Job! Press Start to Go Again.';
+            circle.style.transitionDuration = '1s';
+            circle.style.transform = 'scale(0.5)';
+            circle.style.backgroundColor = '#3b82f6'; // Reset to initial blue
+        }
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startExercise);
+        stopBtn.addEventListener('click', stopExercise);
+        presetSelect.addEventListener('change', applyPreset);
+
+    </script>
+</body>
+</html>
